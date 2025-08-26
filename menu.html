@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Menú — Pedido por WhatsApp</title>
+  <style>
+    :root{
+      --bg:#faf9f6;--paper:#ffffff;--ink:#111318;--muted:#686b73;--brand:#16a085;--line:#ece9e1;
+      --radius:16px;--shadow:0 10px 30px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    img{max-width:100%;display:block}
+    header.hero{background: radial-gradient(1200px 480px at 20% -10%, #fff, #f6f3ec);border-bottom:1px solid var(--line)}
+    .hero-inner{max-width:1100px;margin:0 auto;padding:26px 16px 18px;display:grid;gap:18px;grid-template-columns:1fr}
+    @media(min-width:960px){.hero-inner{grid-template-columns:1.1fr .9fr;align-items:center}}
+    .brand{display:flex;gap:14px;align-items:center}
+    .logo{width:56px;height:56px;border-radius:14px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;box-shadow:var(--shadow)}
+    .logo span{font-size:30px}
+    h1.title{margin:0;font-size:32px}
+    .subtitle{color:var(--muted);margin:6px 0 0}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .badge{font-size:12px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;background:#fff}
+
+    .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    input,button,select,textarea{font:inherit;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;color:var(--ink)}
+    button{cursor:pointer;border:none;background:var(--brand);color:#fff;font-weight:700;box-shadow:0 3px 0 rgba(0,0,0,.06)}
+    button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+    button.ghost{background:transparent;color:var(--brand);border:1px dashed var(--brand)}
+
+    .container{max-width:1100px;margin:18px auto;padding:0 16px}
+    .layout{display:grid;grid-template-columns:1fr;gap:18px}
+    @media(min-width:1000px){.layout{grid-template-columns:1.3fr .7fr}}
+
+    /* Horizontal stacked list */
+    .list{display:flex;flex-direction:column;gap:12px}
+    .card-row{display:flex;gap:14px;align-items:stretch;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px}
+    .thumb{width:140px;flex:0 0 140px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#f4f4f4}
+    .thumb img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/3}
+    .info{flex:1 1 auto;min-width:0}
+    .title-line{display:flex;gap:8px;align-items:center;justify-content:space-between}
+    .title-line h3{margin:0;font-size:18px;line-height:1.1}
+    .muted{color:var(--muted);font-size:13px}
+    .chip{font-size:12px;padding:4px 8px;border-radius:999px;background:#eef4f3;border:1px solid #dfe9e7}
+    .actions{flex:0 0 260px;display:flex;flex-direction:column;gap:8px;justify-content:center}
+    .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+    .stepper{display:inline-grid;grid-template-columns:auto auto auto;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+    .stepper button{background:#fff;color:var(--ink);border:0;padding:6px 10px;min-width:36px}
+    .stepper input{width:54px;text-align:center;border:0}
+    .price{font-weight:800}
+
+    .cart{position:sticky;top:16px;height:fit-content;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+    .cart table{width:100%;border-collapse:collapse}
+    .cart th,.cart td{border-bottom:1px dashed var(--line);padding:8px 0;text-align:left;font-size:14px}
+    .cart tfoot td{font-weight:800}
+    .cta{display:flex;gap:8px;flex-wrap:wrap}
+    .small{font-size:12px}
+    footer{padding:30px 16px;color:#90939a;text-align:center}
+    .pill{background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:999px;display:inline-flex;gap:8px;align-items:center}
+    .hint{font-size:12px;color:#8a8e95}
+
+    /* Randomizer */
+    .randomizer{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+    .suggestions{margin-top:12px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px}
+    .sugg-list{display:flex;flex-direction:column;gap:8px}
+    .sugg-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px dashed var(--line);border-radius:12px;padding:8px;background:#fff}
+    .sugg-row .meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .sugg-row .meta .name{font-weight:600}
+    .sugg-row .meta .portion{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="brand">
+          <div class="logo"><span>🍽️</span></div>
+          <div>
+            <h1 class="title">Menú para tu evento</h1>
+            <p class="subtitle">Elige tus platillos y envíanos tu pedido por WhatsApp.</p>
+            <div class="badges">
+              <span class="badge">Bandejas</span>
+              <span class="badge">Pedido en 1 clic</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <input id="search" class="search" placeholder="Buscar: pollo, lasaña, tilapia..." style="flex:1" />
+          <select id="category">
+            <option value="all">Todas las categorías</option>
+            <option value="Proteínas">Proteínas</option>
+            <option value="Acompañamientos">Acompañamientos</option>
+          </select>
+          <button id="clear">Limpiar pedido</button>
+        </div>
+
+        <!-- RANDOMIZER CONTROLS -->
+        <div class="randomizer">
+          <label class="small">Personas</label>
+          <input id="randPeople" type="number" min="1" value="3" style="width:90px"/>
+          <label class="small">Semanas</label>
+          <input id="randWeeks" type="number" min="1" value="2" style="width:90px"/>
+          <label class="small" style="display:flex;align-items:center;gap:6px">
+            <input id="randVeg" type="checkbox"/> Vegetariano
+          </label>
+          <button id="randBtn">Sugerir menú</button>
+          <span class="small muted">Genera un plan aleatorio para ayudarte a elegir.</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="thumb" style="width:100%;height:auto;aspect-ratio:16/10">
+          <img alt="Ejemplo de presentación" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTIwMCcgaGVpZ2h0PSc3MDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PGxpbmVhckdyYWRpZW50IGlkPSdnJyB4MT0nMCUnIHkxPScwJScgeDI9JzAlJyB5Mj0nMTAwJSc+PHN0b3Agb2Zmc2V0PScwJScgc3RvcC1jb2xvcj0nI2ZmZicvPjxzdG9wIG9mZnNldD0nMTAwJScgc3RvcC1jb2xvcj0nI2YzZjNmMycvPjwvbGluZWFyR3JhZGllbnQ+PHJlY3Qgd2lkdGg9JzEyMDAnIGhlaWdodD0nNzAwJyBmaWxsPSJ1cmwoI2cpIi8+PGNpcmNsZSBjeD0nMTAwJyBjeT0nMTAwJyByPSc4MCcgZmlsbD0nI2ZmZicgZmlsbC1vcGFjaXR5PScuNScvPjx0ZXh0IHg9JzYwJScgeT0nNTAlJyBmb250LXNpemU9JzQwcHgnIGZpbGw9JyM0NDQnIHRleHQtYW5jaG9yPSdtaWRkbGUnPkltYWdlbiBkZSBlamVtcGxvPC90ZXh0Pjwvc3ZnPg==" />
+        </div>
+        <p class="hint">* Imagen de ejemplo. Puedes cargar tus propias fotos desde tu hoja.</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container layout">
+    <section>
+      <div class="row" style="justify-content:flex-start; gap:8px; align-items:center; margin-bottom:8px;">
+        <span class="pill" id="countPill">Cargando menú…</span>
+      </div>
+
+      <!-- HORIZONTAL STACKED LIST -->
+      <div class="list" id="menuList" aria-live="polite"></div>
+
+      <!-- RANDOMIZER SUGGESTIONS -->
+      <div class="suggestions" id="suggestions" style="display:none">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <strong>Sugerencias para tu pedido</strong>
+          <button class="secondary" id="addAllBtn">Agregar todo al carrito</button>
+        </div>
+        <div class="sugg-list" id="suggList"></div>
+      </div>
+    </section>
+
+    <aside class="cart" aria-labelledby="cartTitle">
+      <h2 id="cartTitle" style="margin:0">Tu pedido</h2>
+      <table id="cartTable">
+        <thead><tr><th>Ítem</th><th>Cant.</th><th>Unit.</th><th>Subt.</th></tr></thead>
+        <tbody></tbody>
+        <tfoot><tr><td colspan="3" style="text-align:right">Total</td><td id="grandTotal">—</td></tr></tfoot>
+      </table>
+      <label class="small" for="waPhone">WhatsApp (código país + número)</label>
+      <input id="waPhone" value="50688887777" />
+      <label class="small" for="customerName">Nombre</label>
+      <input id="customerName" placeholder="Tu nombre" />
+      <label class="small" for="deliveryInfo">Dirección / notas</label>
+      <textarea id="deliveryInfo" rows="2" placeholder="Dirección, fecha/hora, notas"></textarea>
+      <div class="cta">
+        <button class="secondary" id="copyMsgBtn">Copiar mensaje</button>
+        <button id="sendWaBtn">Enviar pedido por WhatsApp</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer>© 2025 — Servicio de catering. Precios por bandeja. Disponibilidad sujeta a confirmación.</footer>
+
+<script>
+/* ===== SETTINGS ===== */
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/12l1eCDutdVCjC_d4SpaDdHrp9nUNBMhN7V9OuCWFXsw/gviz/tq?tqx=out:csv";
+
+/* ===== Robust CSV Parser ===== */
+function parseCSV(text){
+  const rows = [];
+  let i=0, field='', row=[], inQuotes=false;
+  function pushField(){ row.push(field); field=''; }
+  function pushRow(){ rows.push(row); row=[]; }
+  while(i<text.length){
+    const ch = text[i++];
+    if(ch === '"'){ if(inQuotes && text[i] === '"'){ field += '"'; i++; } else { inQuotes = !inQuotes; } continue; }
+    if(!inQuotes && ch === ','){ pushField(); continue; }
+    if(!inQuotes && ch === '\n'){ pushField(); pushRow(); continue; }
+    if(!inQuotes && ch === '\r'){ continue; }
+    field += ch;
+  }
+  if(field.length>0 || row.length>0){ pushField(); pushRow(); }
+  const header = (rows.shift()||[]).map(h=>h.trim());
+  return rows.map(r=>Object.fromEntries(header.map((h,i)=>[h, (r[i]||'').trim()])));
+}
+
+/* ===== State ===== */
+const state = {
+  rawRows: [],
+  items: [],          // [{key, name, category, details, photo_url, portions:{'2p': price,...}}]
+  category: 'all',
+  search: '',
+  cart: {}            // key|portion -> {name, portion, qty, price}
+};
+
+/* ===== Elements ===== */
+const els = {
+  menuList: document.getElementById('menuList'),
+  count: document.getElementById('countPill'),
+  cat: document.getElementById('category'),
+  search: document.getElementById('search'),
+  cartBody: document.querySelector('#cartTable tbody'),
+  grand: document.getElementById('grandTotal'),
+  waPhone: document.getElementById('waPhone'),
+  sendBtn: document.getElementById('sendWaBtn'),
+  copyBtn: document.getElementById('copyMsgBtn'),
+  name: document.getElementById('customerName'),
+  notes: document.getElementById('deliveryInfo'),
+  clear: document.getElementById('clear'),
+  // Randomizer UI
+  randPeople: document.getElementById('randPeople'),
+  randWeeks: document.getElementById('randWeeks'),
+  randVeg: document.getElementById('randVeg'),
+  randBtn: document.getElementById('randBtn'),
+  sugg: document.getElementById('suggestions'),
+  suggList: document.getElementById('suggList'),
+  addAll: document.getElementById('addAllBtn'),
+};
+
+function fmtCRC(n){ return '₡'+Number(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
+function itemKey(name, category){ return (category||'')+'|'+(name||''); }
+
+/* Group CSV rows by dish name/category and attach portions->price */
+function groupRows(rows){
+  const grouped = new Map();
+  for (const r of rows){
+    const category = r.category || r.Category || r.categoria || r.Categoría || '';
+    const name = r.name || r.Nombre || r.plato || '';
+    if(!name) continue;
+    const key = itemKey(name, category);
+    const portion = (r.portion || r.Porción || r.porcion || '').toLowerCase();
+    const price = Number(r.sell_price || r.precio || r.price || r.base_price || r.costo || r.base || 0);
+    const details = r.details || r.descripcion || r.detalles || '';
+    const photo = r.photo_url || r.foto || '';
+    const enabled = (String(r.enabled || r.habilitado || 'TRUE').toUpperCase() !== 'FALSE');
+
+    if(!enabled) continue; // hide disabled
+
+    if(!grouped.has(key)){
+      grouped.set(key, { key, name, category, details, photo_url: photo, portions: {} });
+    }
+    const obj = grouped.get(key);
+    if(!obj.details && details) obj.details = details;
+    if(!obj.photo_url && photo) obj.photo_url = photo;
+
+    let p = portion || '';
+    if(!p && (r.tamano || r.tamaño)) p = String(r.tamano || r.tamaño);
+    if(p === '2' || p === '2 personas') p = '2p';
+    if(p === '4' || p === '4 personas') p = '4p';
+    if(p === '6' || p === '6 personas') p = '6p';
+    if(!p) p = '2p';
+    obj.portions[p] = price;
+  }
+  return Array.from(grouped.values());
+}
+
+function filteredItems(){
+  const q=(state.search||'').toLowerCase();
+  return state.items.filter(it =>
+    (state.category==='all' || it.category===state.category) &&
+    (!q || (it.name||'').toLowerCase().includes(q) || (it.details||'').toLowerCase().includes(q))
+  );
+}
+
+function cardRow(it){
+  const img = it.photo_url
+    ? `<img alt="Foto de ${it.name}" src="${it.photo_url}">`
+    : `<img alt="Foto de ${it.name}" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNjAwJyBoZWlnaHQ9JzQyMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bGluZWFyR3JhZGllbnQgaWQ9J2cnIHgxPScwJScgeTE9JzAlJyB4Mj0nMCUnIHkyPScxMDAlJz48c3RvcCBvZmZzZXQ9JzAlJyBzdG9wLWNvbG9yPScjZmZmJy8+PHN0b3Agb2Zmc2V0PScxMDAlJyBzdG9wLWNvbG9yPScjZWVlJy8+PC9saW5lYXJHcmFkaWVudD48cmVjdCB3aWR0aD0nNjAwJyBoZWlnaHQ9JzQyMCcgZmlsbD0ndXJsKCNnKScvPjx0ZXh0IHg9JzUwJScgeT0nNTAlJyBmb250LXNpemU9JzIwcHgnIGZpbGw9JyM0NDQnIHRleHQtYW5jaG9yPSdtaWRkbGUnPkZvcm8gZGUgcGxhdGlsbG88L3RleHQ+PC9zdmc+">`;
+  const portionOptions = Object.entries(it.portions)
+    .sort((a,b)=> (a[0] > b[0] ? 1 : -1))
+    .map(([p,_]) => `<option value="${p}">${p.toUpperCase()}</option>`).join('');
+  const defaultPortion = Object.keys(it.portions)[0];
+  const defaultPrice = it.portions[defaultPortion] || 0;
+
+  return `
+  <div class="card-row" data-key="${it.key}">
+    <div class="thumb">${img}</div>
+    <div class="info">
+      <div class="title-line">
+        <h3>${it.name}</h3>
+        <span class="chip">${it.category || ''}</span>
+      </div>
+      <p class="muted" style="margin:.3rem 0 0">${it.details || ''}</p>
+    </div>
+    <div class="actions">
+      <div class="row">
+        <label for="portion-${it.key}" class="muted">Porciones</label>
+        <select class="portion" id="portion-${it.key}">
+          ${portionOptions}
+        </select>
+      </div>
+      <div class="row">
+        <div class="price" data-price="${defaultPrice}">${fmtCRC(defaultPrice)}</div>
+        <div class="stepper">
+          <button class="dec" aria-label="Restar">−</button>
+          <input class="qty" type="number" min="0" value="0" />
+          <button class="inc" aria-label="Sumar">+</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render(){
+  const items = filteredItems();
+  els.menuList.innerHTML = items.map(cardRow).join('') || `<div class="muted">No hay resultados.</div>`;
+  els.count.textContent = items.length ? `${items.length} opciones` : 'Sin resultados';
+
+  document.querySelectorAll('.card-row').forEach(row=>{
+    const key = row.dataset.key;
+    const it = state.items.find(x=>x.key===key);
+    const priceEl = row.querySelector('.price');
+    const portionSel = row.querySelector('.portion');
+    const qtyInput = row.querySelector('.qty');
+    const btnInc = row.querySelector('.inc');
+    const btnDec = row.querySelector('.dec');
+
+    const p0 = portionSel.value || Object.keys(it.portions)[0];
+    priceEl.dataset.price = it.portions[p0] || 0;
+    priceEl.textContent = fmtCRC(priceEl.dataset.price);
+
+    portionSel.onchange = ()=>{
+      const p = portionSel.value;
+      const price = Number(it.portions[p] || 0);
+      priceEl.dataset.price = price;
+      priceEl.textContent = fmtCRC(price);
+      const cartKey = key + '|' + p;
+      const prevKeys = Object.keys(state.cart).filter(k=>k.startsWith(key+'|'));
+      let qty = Number(qtyInput.value||0);
+      if(qty>0){
+        prevKeys.forEach(k=>delete state.cart[k]);
+        state.cart[cartKey] = {name: it.name, portion: p, qty, price};
+        renderCart();
+      }
+    };
+
+    function sync(qty){
+      qty = Math.max(0, Number(qty||0));
+      qtyInput.value = qty;
+      const p = portionSel.value;
+      const price = Number(priceEl.dataset.price||0);
+      const cartKey = key + '|' + p;
+      if(qty>0){
+        state.cart[cartKey] = {name: it.name, portion: p, qty, price};
+      } else {
+        delete state.cart[cartKey];
+      }
+      renderCart();
+    }
+
+    btnInc.onclick = ()=> sync(Number(qtyInput.value||0)+1);
+    btnDec.onclick = ()=> sync(Number(qtyInput.value||0)-1);
+    qtyInput.oninput = (e)=> sync(e.target.value);
+  });
+
+  renderCart();
+}
+
+function renderCart(){
+  let total=0;
+  const rows = Object.values(state.cart).map(entry=>{
+    const sub = entry.qty * Number(entry.price);
+    total += sub;
+    return `<tr>
+      <td>${entry.name} (${entry.portion.toUpperCase()})</td>
+      <td>${entry.qty}</td>
+      <td>${fmtCRC(entry.price)}</td>
+      <td>${fmtCRC(sub)}</td>
+    </tr>`;
+  });
+  els.cartBody.innerHTML = rows.join('') || `<tr><td colspan="4" class="small muted">Agrega platillos para ver aquí tu pedido.</td></tr>`;
+  els.grand.textContent = total ? fmtCRC(total) : '—';
+}
+
+/* ===== Filters & Cart Events ===== */
+els.cat.onchange = ()=>{ state.category = els.cat.value; render(); };
+els.search.oninput = ()=>{ state.search = els.search.value; render(); };
+els.clear.onclick = ()=>{ state.cart = {}; render(); };
+
+els.copyBtn.onclick = ()=>{
+  const msg = buildMessage();
+  if(!msg){ alert('Agrega platillos primero.'); return; }
+  navigator.clipboard.writeText(msg).then(()=>alert('Mensaje copiado ✅'));
+};
+els.sendBtn.onclick = ()=>{
+  const msg = buildMessage();
+  if(!msg){ alert('Agrega platillos primero.'); return; }
+  const phone = (els.waPhone.value || '').replace(/\D+/g,'');
+  if(!phone){ alert('Ingresa un número de WhatsApp.'); return; }
+  const url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(msg);
+  window.open(url, '_blank', 'noopener');
+};
+
+function buildMessage(){
+  const lines = [];
+  let total = 0;
+  Object.values(state.cart).forEach(entry=>{
+    const sub = entry.qty*entry.price; total += sub;
+    lines.push(`• ${entry.qty} × ${entry.name} (${entry.portion.toUpperCase()}) — ${fmtCRC(entry.price)} c/u = ${fmtCRC(sub)}`);
+  });
+  if(!lines.length) return '';
+  const name = els.name.value?.trim();
+  const notes = els.notes.value?.trim();
+  return [
+    'Hola, quisiera realizar un pedido:',
+    ...lines,
+    'Total: '+fmtCRC(total),
+    name ? 'Nombre: '+name : null,
+    notes ? 'Notas: '+notes : null
+  ].filter(Boolean).join('\n');
+}
+
+/* ===== Randomizer ===== */
+function isVeg(it){
+  const t = (it.name+' '+(it.details||'')).toLowerCase();
+  return /veg|vegetar|ensalada|palmito|papa|chayote|plátano|platano|papaya|verdura|vegetal|arroz blanco|gallo pinto/.test(t);
+}
+function portionFor(people){
+  if(people<=2) return '2p';
+  if(people<=4) return '4p';
+  return '6p';
+}
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+
+function filteredItems(){
+  const q=(state.search||'').toLowerCase();
+  return state.items.filter(it =>
+    (state.category==='all' || it.category===state.category) &&
+    (!q || (it.name||'').toLowerCase().includes(q) || (it.details||'').toLowerCase().includes(q))
+  );
+}
+
+function buildSuggestions(){
+  const people = Math.max(1, parseInt(els.randPeople.value||'3',10));
+  const weeks = Math.max(1, parseInt(els.randWeeks.value||'1',10));
+  const days = Math.min(weeks*7, 28); // cap a 4 semanas
+  const vegOnly = !!els.randVeg.checked;
+  let pool = state.items.slice();
+  if(vegOnly) pool = pool.filter(isVeg);
+  if(!pool.length){ els.sugg.style.display='none'; return []; }
+  const picks = shuffle(pool).slice(0, Math.min(pool.length, days));
+  const portion = portionFor(people);
+  return picks.map(it=>({ key: it.key, name: it.name, portion, price: it.portions[portion]||0 }));
+}
+
+function renderSuggestions(list){
+  if(!list.length){ els.sugg.style.display='none'; els.suggList.innerHTML=''; return; }
+  els.sugg.style.display='block';
+  els.suggList.innerHTML = list.map(s=>`<div class='sugg-row' data-skey='${s.key}|${s.portion}'>
+    <div class='meta'>
+      <span class='name'>${s.name}</span>
+      <span class='portion'>(${s.portion.toUpperCase()})</span>
+      <span class='price'>${fmtCRC(s.price)}</span>
+    </div>
+    <div><button class='secondary addOne'>Agregar</button></div>
+  </div>`).join('');
+  els.suggList.querySelectorAll('.sugg-row').forEach(row=>{
+    const [key, portion] = row.dataset.skey.split('|');
+    const it = state.items.find(x=>x.key===key);
+    row.querySelector('.addOne').onclick = ()=>{
+      const cartKey = key+'|'+portion;
+      const current = state.cart[cartKey]?.qty||0;
+      state.cart[cartKey] = {name: it.name, portion, qty: current+1, price: Number(it.portions[portion]||0)};
+      renderCart();
+    };
+  });
+}
+
+els.randBtn.onclick = ()=>{
+  const list = buildSuggestions();
+  renderSuggestions(list);
+};
+els.addAll.onclick = ()=>{
+  const list = buildSuggestions();
+  list.forEach(s=>{
+    const it = state.items.find(x=>x.key===s.key);
+    const cartKey = s.key+'|'+s.portion;
+    const current = state.cart[cartKey]?.qty||0;
+    state.cart[cartKey] = {name: it.name, portion: s.portion, qty: current+1, price: Number(it.portions[s.portion]||0)};
+  });
+  renderCart();
+};
+
+/* ===== Load data (Google Sheets CSV) + Group ===== */
+async function loadData(){
+  try{
+    const res = await fetch(SHEET_CSV_URL);
+    const txt = await res.text();
+    const rows = parseCSV(txt);
+    state.rawRows = rows;
+    state.items = groupRows(rows);
+    render();
+  } catch(e){
+    els.count.textContent = 'No se pudo cargar la hoja';
+    console.error(e);
+  }
+}
+loadData();
+</script>
+</body>
+</html>
