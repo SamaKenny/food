@@ -107,6 +107,11 @@
         <button class="filter-btn" data-filter="protein">Proteína</button>
         <button class="filter-btn" data-filter="arroz">Arroz</button>
         <button class="filter-btn" data-filter="ensalada">Ensalada</button>
+        <button class="filter-btn" data-filter="sopa">Sopas</button>
+        <button class="filter-btn" data-filter="mariscos">Mariscos</button>
+        <button class="filter-btn" data-filter="postres">Postres</button>
+        <button class="filter-btn" data-filter="bebidas">Bebidas</button>
+        <button class="filter-btn" data-filter="picadillos">Picadillos</button>
       </div>
 
       <!-- RANDOMIZER CONTROLS -->
@@ -249,9 +254,13 @@ function fmtCRC(n){ return '₡'+Number(n).toLocaleString(undefined,{maximumFrac
 function itemKey(name, category){ return (category||'')+'|'+(name||''); }
 function portionFor(people){ if(people<=2) return '2p'; if(people<=4) return '4p'; return '6p'; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* Veg detection: includes plant terms, excludes meats/fish if present */
 function isVeg(it){
   const t = (it.name+' '+(it.details||'')).toLowerCase();
-  return /veg|vegetar|ensalada|palmito|papa|chayote|plátano|platano|verdura|vegetal|arroz blanco|gallo pinto/.test(t);
+  const include = /(veg|vegetar|ensalada|palmito|papa|chayote|yuca|plátano|platano|verdura|vegetal|garbanzo|frijol|arroz blanco|gallo pinto|hongo|champiñ|tofu|queso)/.test(t);
+  const exclude = /(pollo|cerdo|res|carne|pescado|tilapia|salm[oó]n|at[uú]n|jam[oó]n|tocino|marisco|camaron|camar[oó]n|pulpo)/.test(t);
+  return include && !exclude;
 }
 
 /* ===== Group CSV rows into items with portions ===== */
@@ -289,10 +298,15 @@ function passesChipFilter(it){
   const f = state.activeFilter;
   if(f==='all') return true;
   if(f==='vegetarian') return isVeg(it);
-  if(f==='pasta') return /pasta|lasaña|lasagna|espagueti|spaghetti|fetuccine|fettuccine/.test(text);
+  if(f==='pasta') return /pasta|lasaña|lasagna|espagueti|spaghetti|fetuccine|fettuccine|macarr[oó]n/.test(text);
   if(f==='protein') return /pollo|cerdo|res|carne|pescado|tilapia|salm[oó]n|at[uú]n/.test(text);
   if(f==='arroz') return /arroz/.test(text);
   if(f==='ensalada') return /ensalada/.test(text);
+  if(f==='sopa') return /sopa|crema|consom[eé]/.test(text);
+  if(f==='mariscos') return /marisco|camaron|camar[oó]n|pulpo|calamar/.test(text);
+  if(f==='postres') return /postre|flan|tres leches|queque|tarta|brownie|helado/.test(text);
+  if(f==='bebidas') return /bebida|jugo|refresco|gaseosa|limonada|té|cafe/.test(text);
+  if(f==='picadillos') return /picadillo/.test(text);
   return true;
 }
 function filteredItems(){
@@ -361,8 +375,6 @@ function renderList(items){
       else delete state.cart[cartKey];
       renderCart();
     }
-    // initialize with default qty = 1 (but only add to cart after a change)
-    qtyInput.addEventListener('focus', ()=>{}); // placeholder to avoid auto-add
     inc.onclick = ()=> sync(Number(qtyInput.value||0)+1);
     dec.onclick = ()=> sync(Number(qtyInput.value||0)-1);
     qtyInput.oninput = e=> sync(e.target.value);
@@ -432,6 +444,7 @@ function buildMessage(){
 }
 
 /* ===== Randomizer (editable list) ===== */
+function portionFor(people){ if(people<=2) return '2p'; if(people<=4) return '4p'; return '6p'; }
 function buildSuggestions(){
   const people = Math.max(1, parseInt(els.randPeople.value||'3',10));
   const weeks = Math.max(1, parseInt(els.randWeeks.value||'1',10));
