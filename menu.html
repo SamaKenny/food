@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>Menú — Pedido por WhatsApp</title>
 <style>
   :root{
@@ -59,6 +62,11 @@
   .pill{background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:999px;display:inline-flex;gap:8px;align-items:center}
   .hint{font-size:12px;color:#8a8e95}
   .error{margin:12px 0;padding:12px;border:1px solid #ffb4ab;background:#fff6f5;border-radius:12px;color:#8b2c24}
+
+  /* Randomizer list (editable) */
+  .sugg-row{display:flex;align-items:center;gap:10px;justify-content:space-between;border:1px dashed var(--line);border-radius:12px;padding:8px;background:#fff}
+  .sugg-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .sugg-controls{display:flex;gap:10px;align-items:center}
 </style>
 </head>
 <body>
@@ -102,7 +110,7 @@
         <input id="randPriceMax" type="number" min="0" step="500" placeholder="50000" style="width:110px"/>
         <button id="randBtn">Generar plan</button>
       </div>
-      <p class="hint">* El randomizador filtrará por porción según las personas y te mostrará sugerencias abajo.</p>
+      <p class="hint">* El randomizador filtra por porción (según personas) y rango de precio; puedes editar la lista sugerida antes de agregarla al carrito.</p>
     </div>
 
     <div>
@@ -123,13 +131,16 @@
     <!-- 3-COLUMN GRID -->
     <div class="grid" id="menuGrid" aria-live="polite"></div>
 
-    <!-- RANDOMIZER SUGGESTIONS -->
+    <!-- RANDOMIZER SUGGESTIONS (editable) -->
     <div class="cart" id="suggestions" style="display:none; margin-top:12px;">
       <div class="row" style="justify-content:space-between;align-items:center">
-        <strong>Sugerencias para tu pedido</strong>
-        <button class="secondary" id="addAllBtn">Agregar todo al carrito</button>
+        <strong>Lista sugerida (editable)</strong>
+        <div>
+          <button class="secondary" id="addAllBtn">Agregar todo al carrito</button>
+          <button id="clearSuggBtn">Limpiar lista</button>
+        </div>
       </div>
-      <div id="suggList"></div>
+      <div id="suggList" class="sugg-list"></div>
     </div>
 
     <div id="errorBox" class="error" style="display:none"></div>
@@ -159,14 +170,14 @@
 
 <script>
 /* ===== SETTINGS ===== */
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/12l1eCDutdVCjC_d4SpaDdHrp9nUNBMhN7V9OuCWFXsw/gviz/tq?tqx=out:csv";
+const SHEET_CSV_BASE = "https://docs.google.com/spreadsheets/d/12l1eCDutdVCjC_d4SpaDdHrp9nUNBMhN7V9OuCWFXsw/gviz/tq?tqx=out:csv";
 
 /* ===== CSV Parser (maneja comillas, comas, saltos) ===== */
 function parseCSV(text){
   const rows = [];
   let i=0, field='', row=[], inQuotes=false;
-  function pushField(){ row.push(field); field=''; }
-  function pushRow(){ rows.push(row); row=[]; }
+  const pushField=()=>{ row.push(field); field=''; };
+  const pushRow=()=>{ rows.push(row); row=[]; };
   while(i<text.length){
     const ch = text[i++];
     if(ch === '"'){ if(inQuotes && text[i] === '"'){ field += '"'; i++; } else { inQuotes = !inQuotes; } continue; }
@@ -180,8 +191,17 @@ function parseCSV(text){
   return rows.map(r=>Object.fromEntries(header.map((h,i)=>[h, (r[i]||'').trim()])));
 }
 
+/* ===== Price parser: reads 'CRC ₡5,600' -> 5600 ===== */
+function parsePriceField(val){
+  if(val==null) return 0;
+  const s = String(val);
+  const digits = s.match(/\d+/g);
+  if(!digits) return 0;
+  return Number(digits.join(''));
+}
+
 /* ===== State & Elements ===== */
-const state = { raw:[], items:[], cart:{} };
+const state = { raw:[], items:[], cart:{}, suggestions:[] };
 const els = {
   grid: document.getElementById('menuGrid'),
   count: document.getElementById('countPill'),
@@ -196,15 +216,17 @@ const els = {
   copyBtn: document.getElementById('copyMsgBtn'),
   name: document.getElementById('customerName'),
   notes: document.getElementById('deliveryInfo'),
-  suggWrap: document.getElementById('suggestions'),
-  suggList: document.getElementById('suggList'),
+  // randomizer
   randBtn: document.getElementById('randBtn'),
   randPeople: document.getElementById('randPeople'),
   randWeeks: document.getElementById('randWeeks'),
   randVeg: document.getElementById('randVeg'),
   randMin: document.getElementById('randPriceMin'),
   randMax: document.getElementById('randPriceMax'),
+  suggWrap: document.getElementById('suggestions'),
+  suggList: document.getElementById('suggList'),
   addAll: document.getElementById('addAllBtn'),
+  clearSugg: document.getElementById('clearSuggBtn'),
 };
 
 function fmtCRC(n){ return '₡'+Number(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
@@ -228,7 +250,8 @@ function groupRows(rows){
     if(p==='4' || p==='4 personas') p='4p';
     if(p==='6' || p==='6 personas') p='6p';
     if(!p) p='2p';
-    const price = Number(r.sell_price || r.precio || r.price || r.base_price || r.costo || r.base || 0);
+    const priceRaw = r.sell_price || r.precio || r.price || r.base_price || r.costo || r.base || 0;
+    const price = parsePriceField(priceRaw);
     const details = r.details || r.descripcion || r.detalles || '';
     const photo = r.photo_url || r.foto || '';
     const enabled = String(r.enabled || r.habilitado || 'TRUE').toUpperCase()!=='FALSE';
@@ -244,7 +267,7 @@ function groupRows(rows){
   return Array.from(map.values());
 }
 
-/* ===== Rendering ===== */
+/* ===== Render items (3-col grid) ===== */
 function renderList(items){
   els.grid.innerHTML = items.map(it=>{
     const img = it.photo_url
@@ -330,7 +353,7 @@ function renderCart(){
   els.grand.textContent = total ? fmtCRC(total) : '—';
 }
 
-/* ===== Filters & Randomizer ===== */
+/* ===== Filters ===== */
 function filteredItems(){
   const q = (els.search.value||'').toLowerCase();
   const cat = els.category.value||'all';
@@ -344,6 +367,7 @@ els.search.oninput = ()=> renderList(filteredItems());
 els.category.onchange = ()=> renderList(filteredItems());
 els.clear.onclick = ()=>{ state.cart={}; renderCart(); };
 
+/* ===== WhatsApp ===== */
 els.copyBtn.onclick = ()=>{
   const msg = buildMessage();
   if(!msg){ alert('Agrega platillos primero.'); return; }
@@ -366,7 +390,7 @@ function buildMessage(){
   return ['Hola, quisiera realizar un pedido:', ...lines, 'Total: '+fmtCRC(total), name ? 'Nombre: '+name : null, notes ? 'Notas: '+notes : null].filter(Boolean).join('\n');
 }
 
-/* Randomizer */
+/* ===== Randomizer (editable list) ===== */
 function buildSuggestions(){
   const people = Math.max(1, parseInt(els.randPeople.value||'3',10));
   const weeks = Math.max(1, parseInt(els.randWeeks.value||'1',10));
@@ -383,39 +407,92 @@ function buildSuggestions(){
     return price>=pmin && price<=pmax;
   });
   if(!pool.length) return [];
-
   const picks = shuffle(pool.slice()).slice(0, Math.min(pool.length, days));
-  return picks.map(it=>({ key: it.key, name: it.name, portion, price: Number(it.portions[portion]||0) }));
+  return picks.map(it=>({
+    key: it.key, name: it.name, portions: it.portions, portion, qty: 1,
+    price: Number(it.portions[portion]||0)
+  }));
 }
-function renderSuggestions(list){
+function renderSuggestions(){
   els.suggWrap.style.display='block';
-  if(!list.length){
+  if(!state.suggestions.length){
     els.suggList.innerHTML = `<div class="muted">No hay platos que cumplan ese filtro.</div>`;
-  } else {
-    els.suggList.innerHTML = list.map(s=>`
-      <div class="row" style="justify-content:space-between;border-bottom:1px dashed var(--line);padding:6px 0">
-        <div><strong>${s.name}</strong> <span class="muted">(${s.portion.toUpperCase()})</span></div>
-        <div>${fmtCRC(s.price)}</div>
-      </div>`).join('');
+    els.suggWrap.scrollIntoView({behavior:'smooth',block:'start'});
+    return;
   }
+  els.suggList.innerHTML = state.suggestions.map((s,idx)=>{
+    const options = Object.keys(s.portions).sort((a,b)=>a.localeCompare(b))
+      .map(p=>`<option value="${p}" ${p===s.portion?'selected':''}>${p.toUpperCase()}</option>`).join('');
+    return `<div class="sugg-row" data-i="${idx}">
+      <div class="sugg-meta">
+        <strong>${s.name}</strong>
+        <span class="muted">(${fmtCRC(s.price)})</span>
+      </div>
+      <div class="sugg-controls">
+        <label class="small">Porciones</label>
+        <select class="s-portion">${options}</select>
+        <div class="stepper">
+          <button class="s-dec" aria-label="Menos">−</button>
+          <input class="s-qty" type="number" min="0" value="${s.qty}" />
+          <button class="s-inc" aria-label="Más">+</button>
+        </div>
+        <button class="secondary s-remove">Quitar</button>
+      </div>
+    </div>`;
+  }).join('');
+  // wire events
+  els.suggList.querySelectorAll('.sugg-row').forEach(row=>{
+    const i = Number(row.dataset.i);
+    const s = state.suggestions[i];
+    const sel = row.querySelector('.s-portion');
+    const q = row.querySelector('.s-qty');
+    const inc = row.querySelector('.s-inc');
+    const dec = row.querySelector('.s-dec');
+    const rm = row.querySelector('.s-remove');
+
+    sel.onchange = ()=>{
+      s.portion = sel.value;
+      s.price = Number(s.portions[s.portion]||0);
+      renderSuggestions(); // refresh price text
+    };
+    function sync(val){
+      s.qty = Math.max(0, Number(val||0));
+      q.value = s.qty;
+    }
+    inc.onclick = ()=> sync(s.qty+1);
+    dec.onclick = ()=> sync(s.qty-1);
+    q.oninput = e=> sync(e.target.value);
+    rm.onclick = ()=>{
+      state.suggestions.splice(i,1);
+      renderSuggestions();
+    };
+  });
   els.suggWrap.scrollIntoView({behavior:'smooth',block:'start'});
 }
-els.randBtn.onclick = ()=> renderSuggestions(buildSuggestions());
+els.randBtn.onclick = ()=>{
+  state.suggestions = buildSuggestions();
+  renderSuggestions();
+};
 els.addAll.onclick = ()=>{
-  const list = buildSuggestions();
-  list.forEach(s=>{
-    const it = state.items.find(x=>x.key===s.key);
-    const cartKey = s.key+'|'+s.portion;
-    const current = state.cart[cartKey]?.qty||0;
-    state.cart[cartKey] = {name: it.name, portion: s.portion, qty: current+1, price: Number(it.portions[s.portion]||0)};
+  state.suggestions.forEach(s=>{
+    if(s.qty>0){
+      const cartKey = s.key+'|'+s.portion;
+      const prev = state.cart[cartKey]?.qty||0;
+      state.cart[cartKey] = {name: s.name, portion: s.portion, qty: prev + s.qty, price: s.price};
+    }
   });
   renderCart();
 };
+els.clearSugg.onclick = ()=>{
+  state.suggestions = [];
+  renderSuggestions();
+};
 
-/* ===== Load data ===== */
+/* ===== Load latest data (no cache) ===== */
 async function loadData(){
   try{
-    const res = await fetch(SHEET_CSV_URL);
+    const url = SHEET_CSV_BASE + '&_=' + Date.now();
+    const res = await fetch(url, {cache:'no-store', headers:{'Cache-Control':'no-cache'}});
     const txt = await res.text();
     const rows = parseCSV(txt);
     state.raw = rows.slice();
