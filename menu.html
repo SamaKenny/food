@@ -12,6 +12,7 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
   img{max-width:100%;display:block}
+
   header.hero{background: radial-gradient(1200px 480px at 20% -10%, #fff, #f6f3ec);border-bottom:1px solid var(--line)}
   .hero-inner{max-width:1200px;margin:0 auto;padding:26px 16px 18px;display:grid;gap:18px;grid-template-columns:1fr}
   @media(min-width:960px){.hero-inner{grid-template-columns:1.1fr .9fr;align-items:center}}
@@ -26,28 +27,29 @@
   input,button,select,textarea{font:inherit;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;color:var(--ink)}
   button{cursor:pointer;border:none;background:var(--brand);color:#fff;font-weight:700;box-shadow:0 3px 0 rgba(0,0,0,.06)}
   button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+
   .container{max-width:1200px;margin:18px auto;padding:0 16px}
   .layout{display:grid;grid-template-columns:1fr;gap:18px}
   @media(min-width:1100px){.layout{grid-template-columns:1.3fr .7fr}}
-  /* HORIZONTAL DASHBOARD STRIP */
-  .strip{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory}
-  .strip::-webkit-scrollbar{height:8px}
-  .strip::-webkit-scrollbar-thumb{background:#d8d5ce;border-radius:8px}
-  .tile{scroll-snap-align:start;display:flex;gap:14px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;min-width:680px}
-  .thumb{width:140px;flex:0 0 140px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#f4f4f4}
-  .thumb img{width:100%;height:100%;object-fit:cover;aspect-ratio:4/3}
-  .info{flex:1 1 auto;min-width:0}
+
+  /* GRID: 3 items per row on desktop */
+  .grid{display:grid;gap:14px;grid-template-columns:1fr}
+  @media(min-width:700px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:1024px){.grid{grid-template-columns:repeat(3,1fr)}}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;display:flex;flex-direction:column;gap:10px}
+  .thumb{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#f4f4f4;aspect-ratio:4/3}
+  .thumb img{width:100%;height:100%;object-fit:cover}
   .title-line{display:flex;gap:8px;align-items:center;justify-content:space-between}
-  .title-line h3{margin:0;font-size:18px;line-height:1.1}
+  .title-line h3{margin:0;font-size:18px}
   .muted{color:var(--muted);font-size:13px}
   .chip{font-size:12px;padding:4px 8px;border-radius:999px;background:#eef4f3;border:1px solid #dfe9e7}
-  .actions{flex:0 0 260px;display:flex;flex-direction:column;gap:8px;justify-content:center}
   .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
   .stepper{display:inline-grid;grid-template-columns:auto auto auto;border:1px solid var(--line);border-radius:10px;overflow:hidden}
   .stepper button{background:#fff;color:var(--ink);border:0;padding:6px 10px;min-width:36px}
   .stepper input{width:54px;text-align:center;border:0}
   .price{font-weight:800}
-  /* CART */
+
   .cart{position:sticky;top:16px;height:fit-content;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
   .cart table{width:100%;border-collapse:collapse}
   .cart th,.cart td{border-bottom:1px dashed var(--line);padding:8px 0;text-align:left;font-size:14px}
@@ -56,17 +58,7 @@
   .small{font-size:12px}
   .pill{background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:999px;display:inline-flex;gap:8px;align-items:center}
   .hint{font-size:12px;color:#8a8e95}
-  /* RANDOMIZER */
-  .randomizer{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-  .suggestions{margin-top:12px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px}
-  .sugg-list{display:flex;flex-direction:column;gap:8px}
-  .sugg-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px dashed var(--line);border-radius:12px;padding:8px;background:#fff}
-  .sugg-row .meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .sugg-row .meta .name{font-weight:600}
-  .sugg-row .meta .portion{font-size:12px;color:var(--muted)}
-  /* ERROR */
   .error{margin:12px 0;padding:12px;border:1px solid #ffb4ab;background:#fff6f5;border-radius:12px;color:#8b2c24}
-  footer{padding:30px 16px;color:#90939a;text-align:center}
 </style>
 </head>
 <body>
@@ -96,7 +88,7 @@
       </div>
 
       <!-- RANDOMIZER CONTROLS -->
-      <div class="randomizer">
+      <div class="controls" style="margin-top:8px">
         <label class="small">Personas</label>
         <input id="randPeople" type="number" min="1" value="3" style="width:90px"/>
         <label class="small">Semanas</label>
@@ -109,8 +101,8 @@
         <label class="small">Precio máx</label>
         <input id="randPriceMax" type="number" min="0" step="500" placeholder="50000" style="width:110px"/>
         <button id="randBtn">Generar plan</button>
-        <span class="small muted">Genera un plan aleatorio para ayudarte a elegir.</span>
       </div>
+      <p class="hint">* El randomizador filtrará por porción según las personas y te mostrará sugerencias abajo.</p>
     </div>
 
     <div>
@@ -128,16 +120,16 @@
       <span class="pill" id="countPill">Cargando menú…</span>
     </div>
 
-    <!-- HORIZONTAL STRIP -->
-    <div class="strip" id="menuStrip" aria-live="polite"></div>
+    <!-- 3-COLUMN GRID -->
+    <div class="grid" id="menuGrid" aria-live="polite"></div>
 
     <!-- RANDOMIZER SUGGESTIONS -->
-    <div class="suggestions" id="suggestions" style="display:none">
+    <div class="cart" id="suggestions" style="display:none; margin-top:12px;">
       <div class="row" style="justify-content:space-between;align-items:center">
         <strong>Sugerencias para tu pedido</strong>
         <button class="secondary" id="addAllBtn">Agregar todo al carrito</button>
       </div>
-      <div class="sugg-list" id="suggList"></div>
+      <div id="suggList"></div>
     </div>
 
     <div id="errorBox" class="error" style="display:none"></div>
@@ -169,7 +161,7 @@
 /* ===== SETTINGS ===== */
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/12l1eCDutdVCjC_d4SpaDdHrp9nUNBMhN7V9OuCWFXsw/gviz/tq?tqx=out:csv";
 
-/* ===== Lightweight CSV Parser (quotes/commas/newlines) ===== */
+/* ===== CSV Parser (maneja comillas, comas, saltos) ===== */
 function parseCSV(text){
   const rows = [];
   let i=0, field='', row=[], inQuotes=false;
@@ -188,23 +180,15 @@ function parseCSV(text){
   return rows.map(r=>Object.fromEntries(header.map((h,i)=>[h, (r[i]||'').trim()])));
 }
 
-/* ===== State ===== */
-const state = {
-  raw: [],
-  items: [],      // [{key, name, category, details, photo_url, portions:{2p:price,4p:price,6p:price}}]
-  cart: {}        // key|portion -> {name, portion, qty, price}
-};
-
-/* ===== Elements ===== */
+/* ===== State & Elements ===== */
+const state = { raw:[], items:[], cart:{} };
 const els = {
-  strip: document.getElementById('menuStrip'),
+  grid: document.getElementById('menuGrid'),
   count: document.getElementById('countPill'),
   error: document.getElementById('errorBox'),
-  // filters
   search: document.getElementById('search'),
   category: document.getElementById('category'),
   clear: document.getElementById('clear'),
-  // cart
   cartBody: document.querySelector('#cartTable tbody'),
   grand: document.getElementById('grandTotal'),
   waPhone: document.getElementById('waPhone'),
@@ -212,37 +196,34 @@ const els = {
   copyBtn: document.getElementById('copyMsgBtn'),
   name: document.getElementById('customerName'),
   notes: document.getElementById('deliveryInfo'),
-  // randomizer
+  suggWrap: document.getElementById('suggestions'),
+  suggList: document.getElementById('suggList'),
+  randBtn: document.getElementById('randBtn'),
   randPeople: document.getElementById('randPeople'),
   randWeeks: document.getElementById('randWeeks'),
   randVeg: document.getElementById('randVeg'),
   randMin: document.getElementById('randPriceMin'),
   randMax: document.getElementById('randPriceMax'),
-  randBtn: document.getElementById('randBtn'),
-  suggWrap: document.getElementById('suggestions'),
-  suggList: document.getElementById('suggList'),
   addAll: document.getElementById('addAllBtn'),
 };
 
-/* ===== Utils ===== */
 function fmtCRC(n){ return '₡'+Number(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
 function itemKey(name, category){ return (category||'')+'|'+(name||''); }
+function portionFor(people){ if(people<=2) return '2p'; if(people<=4) return '4p'; return '6p'; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function isVeg(it){
   const t = (it.name+' '+(it.details||'')).toLowerCase();
   return /veg|vegetar|ensalada|palmito|papa|chayote|plátano|platano|verdura|vegetal|arroz blanco|gallo pinto/.test(t);
 }
-function portionFor(people){ if(people<=2) return '2p'; if(people<=4) return '4p'; return '6p'; }
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-/* ===== Data shaping ===== */
+/* ===== Group CSV rows into items with portions ===== */
 function groupRows(rows){
   const map = new Map();
   for(const r of rows){
     const category = r.category || r.Category || r.categoria || r.Categoría || '';
     const name = r.name || r.Nombre || r.plato || '';
     if(!name) continue;
-    const portionRaw = (r.portion || r.Porción || r.porcion || r.Tamaño || r.tamano || r.tamaño || '').toString().toLowerCase();
-    let p = portionRaw;
+    let p = (r.portion || r.Porción || r.porcion || r.Tamaño || r.tamano || r.tamaño || '').toString().toLowerCase();
     if(p==='2' || p==='2 personas') p='2p';
     if(p==='4' || p==='4 personas') p='4p';
     if(p==='6' || p==='6 personas') p='6p';
@@ -250,11 +231,11 @@ function groupRows(rows){
     const price = Number(r.sell_price || r.precio || r.price || r.base_price || r.costo || r.base || 0);
     const details = r.details || r.descripcion || r.detalles || '';
     const photo = r.photo_url || r.foto || '';
-    const enabled = String(r.enabled || r.habilitado || 'TRUE').toUpperCase() !== 'FALSE';
+    const enabled = String(r.enabled || r.habilitado || 'TRUE').toUpperCase()!=='FALSE';
     if(!enabled) continue;
 
     const key = itemKey(name, category);
-    if(!map.has(key)) map.set(key, { key, name, category, details, photo_url: photo, portions: {} });
+    if(!map.has(key)) map.set(key,{ key, name, category, details, photo_url: photo, portions:{} });
     const it = map.get(key);
     if(!it.details && details) it.details = details;
     if(!it.photo_url && photo) it.photo_url = photo;
@@ -265,7 +246,7 @@ function groupRows(rows){
 
 /* ===== Rendering ===== */
 function renderList(items){
-  els.strip.innerHTML = items.map(it=>{
+  els.grid.innerHTML = items.map(it=>{
     const img = it.photo_url
       ? `<img alt="Foto de ${it.name}" src="${it.photo_url}">`
       : `<img alt="Foto de ${it.name}" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNjAwJyBoZWlnaHQ9JzQyMCcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJz48bGluZWFyR3JhZGllbnQgaWQ9J2cnIHgxPScwJScgeTE9JzAlJyB4Mj0nMCUnIHkyPScxMDAlJz48c3RvcCBvZmZzZXQ9JzAlJyBzdG9wLWNvbG9yPScjZmZmJy8+PHN0b3Agb2Zmc2V0PScxMDAlJyBzdG9wLWNvbG9yPScjZWVlJy8+PC9saW5lYXJHcmFkaWVudD48cmVjdCB3aWR0aD0nNjAwJyBoZWlnaHQ9JzQyMCcgZmlsbD0ndXJsKCNnKScvPjx0ZXh0IHg9JzUwJScgeT0nNTAlJyBmb250LXNpemU9JzIwcHgnIGZpbGw9JyM0NDQnIHRleHQtYW5jaG9yPSdtaWRkbGUnPkZvcm8gZGUgcGxhdGlsbG88L3RleHQ+PC9zdmc+">`;
@@ -274,44 +255,36 @@ function renderList(items){
       .map(([p,_])=>`<option value="${p}">${p.toUpperCase()}</option>`).join('');
     const firstP = Object.keys(it.portions)[0];
     const firstPrice = it.portions[firstP] || 0;
-    return `
-      <div class="tile" data-key="${it.key}">
-        <div class="thumb">${img}</div>
-        <div class="info">
-          <div class="title-line">
-            <h3>${it.name}</h3>
-            <span class="chip">${it.category||''}</span>
-          </div>
-          <p class="muted" style="margin:.3rem 0 0">${it.details||''}</p>
+
+    return `<div class="card" data-key="${it.key}">
+      <div class="thumb">${img}</div>
+      <div class="title-line"><h3>${it.name}</h3><span class="chip">${it.category||''}</span></div>
+      <p class="muted" style="min-height:38px">${it.details||''}</p>
+      <div class="row">
+        <label class="muted" for="portion-${it.key}">Porciones</label>
+        <select class="portion" id="portion-${it.key}">${portionOptions}</select>
+      </div>
+      <div class="row">
+        <div class="price" data-price="${firstPrice}">${fmtCRC(firstPrice)}</div>
+        <div class="stepper">
+          <button class="dec" aria-label="Restar">−</button>
+          <input class="qty" type="number" min="0" value="0" />
+          <button class="inc" aria-label="Sumar">+</button>
         </div>
-        <div class="actions">
-          <div class="row">
-            <label class="muted">Porciones</label>
-            <select class="portion">${portionOptions}</select>
-          </div>
-          <div class="row">
-            <div class="price" data-price="${firstPrice}">${fmtCRC(firstPrice)}</div>
-            <div class="stepper">
-              <button class="dec" aria-label="Restar">−</button>
-              <input class="qty" type="number" min="0" value="0" />
-              <button class="inc" aria-label="Sumar">+</button>
-            </div>
-          </div>
-        </div>
-      </div>`;
+      </div>
+    </div>`;
   }).join('') || `<div class="error">No hay ítems para mostrar. Verifica la hoja de cálculo o los filtros.</div>`;
 
   // Wire events
-  document.querySelectorAll('.tile').forEach(tile=>{
-    const key = tile.dataset.key;
+  document.querySelectorAll('.card').forEach(card=>{
+    const key = card.dataset.key;
     const it = state.items.find(x=>x.key===key);
-    const portionSel = tile.querySelector('.portion');
-    const priceEl = tile.querySelector('.price');
-    const qtyInput = tile.querySelector('.qty');
-    const inc = tile.querySelector('.inc');
-    const dec = tile.querySelector('.dec');
+    const portionSel = card.querySelector('.portion');
+    const priceEl = card.querySelector('.price');
+    const qtyInput = card.querySelector('.qty');
+    const inc = card.querySelector('.inc');
+    const dec = card.querySelector('.dec');
 
-    // Init price based on current select
     const p0 = portionSel.value || Object.keys(it.portions)[0];
     priceEl.dataset.price = Number(it.portions[p0]||0);
     priceEl.textContent = fmtCRC(priceEl.dataset.price);
@@ -323,7 +296,6 @@ function renderList(items){
       priceEl.textContent = fmtCRC(price);
       const qty = Number(qtyInput.value||0);
       if(qty>0){
-        // move cart line to selected portion
         Object.keys(state.cart).filter(k=>k.startsWith(key+'|')).forEach(k=>delete state.cart[k]);
         state.cart[key+'|'+p] = {name: it.name, portion: p, qty, price};
         renderCart();
@@ -344,6 +316,8 @@ function renderList(items){
     dec.onclick = ()=> sync(Number(qtyInput.value||0)-1);
     qtyInput.oninput = e=> sync(e.target.value);
   });
+
+  els.count.textContent = items.length ? `${items.length} opciones` : 'Sin resultados';
 }
 
 function renderCart(){
@@ -414,39 +388,19 @@ function buildSuggestions(){
   return picks.map(it=>({ key: it.key, name: it.name, portion, price: Number(it.portions[portion]||0) }));
 }
 function renderSuggestions(list){
-  if(!list.length){
-    els.suggWrap.style.display='block';
-    els.suggList.innerHTML = `<div class="sugg-row"><div class="meta">No hay platos que cumplan ese filtro.</div></div>`;
-    els.suggWrap.scrollIntoView({behavior:'smooth',block:'start'});
-    return;
-  }
   els.suggWrap.style.display='block';
-  els.suggList.innerHTML = list.map(s=>`
-    <div class='sugg-row' data-skey='${s.key}|${s.portion}'>
-      <div class='meta'>
-        <span class='name'>${s.name}</span>
-        <span class='portion'>(${s.portion.toUpperCase()})</span>
-        <span class='price'>${fmtCRC(s.price)}</span>
-      </div>
-      <div><button class='secondary addOne'>Agregar</button></div>
-    </div>`).join('');
+  if(!list.length){
+    els.suggList.innerHTML = `<div class="muted">No hay platos que cumplan ese filtro.</div>`;
+  } else {
+    els.suggList.innerHTML = list.map(s=>`
+      <div class="row" style="justify-content:space-between;border-bottom:1px dashed var(--line);padding:6px 0">
+        <div><strong>${s.name}</strong> <span class="muted">(${s.portion.toUpperCase()})</span></div>
+        <div>${fmtCRC(s.price)}</div>
+      </div>`).join('');
+  }
   els.suggWrap.scrollIntoView({behavior:'smooth',block:'start'});
-  els.suggList.querySelectorAll('.sugg-row .addOne').forEach(btn=>{
-    btn.onclick = ()=>{
-      const row = btn.closest('.sugg-row');
-      const [key, portion] = row.dataset.skey.split('|');
-      const it = state.items.find(x=>x.key===key);
-      const cartKey = key+'|'+portion;
-      const current = state.cart[cartKey]?.qty||0;
-      state.cart[cartKey] = {name: it.name, portion, qty: current+1, price: Number(it.portions[portion]||0)};
-      renderCart();
-    };
-  });
 }
-els.randBtn.onclick = ()=>{
-  const list = buildSuggestions();
-  renderSuggestions(list);
-};
+els.randBtn.onclick = ()=> renderSuggestions(buildSuggestions());
 els.addAll.onclick = ()=>{
   const list = buildSuggestions();
   list.forEach(s=>{
@@ -468,11 +422,10 @@ async function loadData(){
     state.items = groupRows(rows);
     if(!state.items.length){
       els.error.style.display='block';
-      els.error.innerHTML = "No se encontraron ítems en la hoja. Verifica que las columnas incluyan al menos <b>name</b>/<b>Nombre</b>/<b>plato</b>, <b>portion</b>/<b>Porción</b>/<b>porcion</b> y <b>sell_price</b>/<b>precio</b>.";
+      els.error.innerHTML = "No se encontraron ítems en la hoja. Asegúrate de tener columnas: <b>name</b>/<b>Nombre</b>/<b>plato</b>, <b>portion</b>/<b>Porción</b>/<b>porcion</b> y <b>sell_price</b>/<b>precio</b>.";
     } else {
       els.error.style.display='none';
     }
-    els.count.textContent = state.items.length ? `${state.items.length} opciones` : 'Sin resultados';
     renderList(state.items);
   } catch(e){
     console.error(e);
