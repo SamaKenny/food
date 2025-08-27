@@ -26,14 +26,19 @@
   .subtitle{color:var(--muted);margin:6px 0 0}
   .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .badge{font-size:12px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;background:#fff}
+
   .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
   input,button,select,textarea{font:inherit;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;color:var(--ink)}
   button{cursor:pointer;border:none;background:var(--brand);color:#fff;font-weight:700;box-shadow:0 3px 0 rgba(0,0,0,.06)}
   button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
 
   .filters{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
-  .filter-btn{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer}
-  .filter-btn.active{background:var(--brand);color:#fff;font-weight:600}
+  .filter-btn{
+    padding:6px 12px;border-radius:999px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);cursor:pointer;transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .filter-btn:hover{background:#f4f7f6;border-color:#dde7e4}
+  .filter-btn.active{background:var(--brand);color:#fff;font-weight:600;border-color:transparent}
 
   .container{max-width:1200px;margin:18px auto;padding:0 16px}
   .layout{display:grid;grid-template-columns:1fr;gap:18px}
@@ -190,11 +195,11 @@
 <script>
 /* ===== SETTINGS ===== */
 const SHEET_CSV_BASE = "https://docs.google.com/spreadsheets/d/12l1eCDutdVCjC_d4SpaDdHrp9nUNBMhN7V9OuCWFXsw/gviz/tq?tqx=out:csv";
+const PRICE_MARKUP = 1.30; // +30% (client-facing; no text mentions this)
 
-/* ===== CSV Parser (maneja comillas, comas, saltos) ===== */
+/* ===== CSV Parser ===== */
 function parseCSV(text){
-  const rows = [];
-  let i=0, field='', row=[], inQuotes=false;
+  const rows = []; let i=0, field='', row=[], inQuotes=false;
   const pushField=()=>{ row.push(field); field=''; };
   const pushRow=()=>{ rows.push(row); row=[]; };
   while(i<text.length){
@@ -210,7 +215,7 @@ function parseCSV(text){
   return rows.map(r=>Object.fromEntries(header.map((h,i)=>[h, (r[i]||'').trim()])));
 }
 
-/* ===== Price parser: reads 'CRC ₡5,600' -> 5600 ===== */
+/* Price parser: 'CRC ₡5,600' -> 5600 */
 function parsePriceField(val){
   if(val==null) return 0;
   const s = String(val);
@@ -235,9 +240,7 @@ const els = {
   copyBtn: document.getElementById('copyMsgBtn'),
   name: document.getElementById('customerName'),
   notes: document.getElementById('deliveryInfo'),
-  // filters
   chips: document.getElementById('filterChips'),
-  // randomizer
   randBtn: document.getElementById('randBtn'),
   randPeople: document.getElementById('randPeople'),
   randWeeks: document.getElementById('randWeeks'),
@@ -255,7 +258,7 @@ function itemKey(name, category){ return (category||'')+'|'+(name||''); }
 function portionFor(people){ if(people<=2) return '2p'; if(people<=4) return '4p'; return '6p'; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-/* Veg detection: includes plant terms, excludes meats/fish if present */
+/* Veg detection */
 function isVeg(it){
   const t = (it.name+' '+(it.details||'')).toLowerCase();
   const include = /(veg|vegetar|ensalada|palmito|papa|chayote|yuca|plátano|platano|verdura|vegetal|garbanzo|frijol|arroz blanco|gallo pinto|hongo|champiñ|tofu|queso)/.test(t);
@@ -263,7 +266,7 @@ function isVeg(it){
   return include && !exclude;
 }
 
-/* ===== Group CSV rows into items with portions ===== */
+/* ===== Build items from CSV ===== */
 function groupRows(rows){
   const map = new Map();
   for(const r of rows){
@@ -275,8 +278,11 @@ function groupRows(rows){
     if(p==='4' || p==='4 personas') p='4p';
     if(p==='6' || p==='6 personas') p='6p';
     if(!p) p='2p';
+
     const priceRaw = r.sell_price || r.precio || r.price || r.base_price || r.costo || r.base || 0;
-    const price = parsePriceField(priceRaw);
+    const base = parsePriceField(priceRaw);
+    const price = Math.round(base * PRICE_MARKUP); // apply +30%
+
     const details = r.details || r.descripcion || r.detalles || '';
     const photo = r.photo_url || r.foto || '';
     const enabled = String(r.enabled || r.habilitado || 'TRUE').toUpperCase()!=='FALSE';
@@ -287,7 +293,7 @@ function groupRows(rows){
     const it = map.get(key);
     if(!it.details && details) it.details = details;
     if(!it.photo_url && photo) it.photo_url = photo;
-    it.portions[p] = price;
+    it.portions[p] = price; // markup already applied
   }
   return Array.from(map.values());
 }
@@ -305,7 +311,7 @@ function passesChipFilter(it){
   if(f==='sopa') return /sopa|crema|consom[eé]/.test(text);
   if(f==='mariscos') return /marisco|camaron|camar[oó]n|pulpo|calamar/.test(text);
   if(f==='postres') return /postre|flan|tres leches|queque|tarta|brownie|helado/.test(text);
-  if(f==='bebidas') return /bebida|jugo|refresco|gaseosa|limonada|té|cafe/.test(text);
+  if(f==='bebidas') return /bebida|jugo|refresco|gaseosa|limonada|té|cafe|café/.test(text);
   if(f==='picadillos') return /picadillo/.test(text);
   return true;
 }
@@ -444,7 +450,6 @@ function buildMessage(){
 }
 
 /* ===== Randomizer (editable list) ===== */
-function portionFor(people){ if(people<=2) return '2p'; if(people<=4) return '4p'; return '6p'; }
 function buildSuggestions(){
   const people = Math.max(1, parseInt(els.randPeople.value||'3',10));
   const weeks = Math.max(1, parseInt(els.randWeeks.value||'1',10));
