@@ -31,6 +31,10 @@
   button{cursor:pointer;border:none;background:var(--brand);color:#fff;font-weight:700;box-shadow:0 3px 0 rgba(0,0,0,.06)}
   button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
 
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .filter-btn{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  .filter-btn.active{background:var(--brand);color:#fff;font-weight:600}
+
   .container{max-width:1200px;margin:18px auto;padding:0 16px}
   .layout{display:grid;grid-template-columns:1fr;gap:18px}
   @media(min-width:1100px){.layout{grid-template-columns:1.3fr .7fr}}
@@ -95,6 +99,16 @@
         <button id="clear">Limpiar pedido</button>
       </div>
 
+      <!-- FILTER CHIPS -->
+      <div class="filters" id="filterChips">
+        <button class="filter-btn active" data-filter="all">Todos</button>
+        <button class="filter-btn" data-filter="vegetarian">Vegetariano</button>
+        <button class="filter-btn" data-filter="pasta">Pasta</button>
+        <button class="filter-btn" data-filter="protein">Proteína</button>
+        <button class="filter-btn" data-filter="arroz">Arroz</button>
+        <button class="filter-btn" data-filter="ensalada">Ensalada</button>
+      </div>
+
       <!-- RANDOMIZER CONTROLS -->
       <div class="controls" style="margin-top:8px">
         <label class="small">Personas</label>
@@ -110,7 +124,7 @@
         <input id="randPriceMax" type="number" min="0" step="500" placeholder="50000" style="width:110px"/>
         <button id="randBtn">Generar plan</button>
       </div>
-      <p class="hint">* El randomizador filtra por porción (según personas) y rango de precio; puedes editar la lista sugerida antes de agregarla al carrito.</p>
+      <p class="hint">* Filtra por porción (según personas) y rango; edita la lista sugerida antes de agregarla al carrito.</p>
     </div>
 
     <div>
@@ -154,7 +168,7 @@
       <tfoot><tr><td colspan="3" style="text-align:right">Total</td><td id="grandTotal">—</td></tr></tfoot>
     </table>
     <label class="small" for="waPhone">WhatsApp (código país + número)</label>
-    <input id="waPhone" value="50688887777" />
+    <input id="waPhone" value="50671323131" />
     <label class="small" for="customerName">Nombre</label>
     <input id="customerName" placeholder="Tu nombre" />
     <label class="small" for="deliveryInfo">Dirección / notas</label>
@@ -201,7 +215,7 @@ function parsePriceField(val){
 }
 
 /* ===== State & Elements ===== */
-const state = { raw:[], items:[], cart:{}, suggestions:[] };
+const state = { raw:[], items:[], cart:{}, suggestions:[], activeFilter:'all' };
 const els = {
   grid: document.getElementById('menuGrid'),
   count: document.getElementById('countPill'),
@@ -216,6 +230,8 @@ const els = {
   copyBtn: document.getElementById('copyMsgBtn'),
   name: document.getElementById('customerName'),
   notes: document.getElementById('deliveryInfo'),
+  // filters
+  chips: document.getElementById('filterChips'),
   // randomizer
   randBtn: document.getElementById('randBtn'),
   randPeople: document.getElementById('randPeople'),
@@ -267,6 +283,29 @@ function groupRows(rows){
   return Array.from(map.values());
 }
 
+/* ===== Filtering ===== */
+function passesChipFilter(it){
+  const text = (it.name+' '+(it.details||'')).toLowerCase();
+  const f = state.activeFilter;
+  if(f==='all') return true;
+  if(f==='vegetarian') return isVeg(it);
+  if(f==='pasta') return /pasta|lasaña|lasagna|espagueti|spaghetti|fetuccine|fettuccine/.test(text);
+  if(f==='protein') return /pollo|cerdo|res|carne|pescado|tilapia|salm[oó]n|at[uú]n/.test(text);
+  if(f==='arroz') return /arroz/.test(text);
+  if(f==='ensalada') return /ensalada/.test(text);
+  return true;
+}
+function filteredItems(){
+  const q = (els.search.value||'').toLowerCase();
+  const cat = els.category.value||'all';
+  return state.items.filter(it=>{
+    const okCat = cat==='all' || it.category===cat;
+    const okQ = !q || (it.name||'').toLowerCase().includes(q) || (it.details||'').toLowerCase().includes(q);
+    const okChip = passesChipFilter(it);
+    return okCat && okQ && okChip;
+  });
+}
+
 /* ===== Render items (3-col grid) ===== */
 function renderList(items){
   els.grid.innerHTML = items.map(it=>{
@@ -291,7 +330,7 @@ function renderList(items){
         <div class="price" data-price="${firstPrice}">${fmtCRC(firstPrice)}</div>
         <div class="stepper">
           <button class="dec" aria-label="Restar">−</button>
-          <input class="qty" type="number" min="0" value="0" />
+          <input class="qty" type="number" min="0" value="1" />
           <button class="inc" aria-label="Sumar">+</button>
         </div>
       </div>
@@ -312,6 +351,22 @@ function renderList(items){
     priceEl.dataset.price = Number(it.portions[p0]||0);
     priceEl.textContent = fmtCRC(priceEl.dataset.price);
 
+    function sync(qty){
+      qty = Math.max(0, Number(qty||0));
+      qtyInput.value = qty;
+      const p = portionSel.value;
+      const price = Number(priceEl.dataset.price||0);
+      const cartKey = key+'|'+p;
+      if(qty>0) state.cart[cartKey] = {name: it.name, portion: p, qty, price};
+      else delete state.cart[cartKey];
+      renderCart();
+    }
+    // initialize with default qty = 1 (but only add to cart after a change)
+    qtyInput.addEventListener('focus', ()=>{}); // placeholder to avoid auto-add
+    inc.onclick = ()=> sync(Number(qtyInput.value||0)+1);
+    dec.onclick = ()=> sync(Number(qtyInput.value||0)-1);
+    qtyInput.oninput = e=> sync(e.target.value);
+
     portionSel.onchange = ()=>{
       const p = portionSel.value;
       const price = Number(it.portions[p]||0);
@@ -324,20 +379,6 @@ function renderList(items){
         renderCart();
       }
     };
-
-    function sync(qty){
-      qty = Math.max(0, Number(qty||0));
-      qtyInput.value = qty;
-      const p = portionSel.value;
-      const price = Number(priceEl.dataset.price||0);
-      const cartKey = key+'|'+p;
-      if(qty>0) state.cart[cartKey] = {name: it.name, portion: p, qty, price};
-      else delete state.cart[cartKey];
-      renderCart();
-    }
-    inc.onclick = ()=> sync(Number(qtyInput.value||0)+1);
-    dec.onclick = ()=> sync(Number(qtyInput.value||0)-1);
-    qtyInput.oninput = e=> sync(e.target.value);
   });
 
   els.count.textContent = items.length ? `${items.length} opciones` : 'Sin resultados';
@@ -353,19 +394,19 @@ function renderCart(){
   els.grand.textContent = total ? fmtCRC(total) : '—';
 }
 
-/* ===== Filters ===== */
-function filteredItems(){
-  const q = (els.search.value||'').toLowerCase();
-  const cat = els.category.value||'all';
-  return state.items.filter(it=>{
-    const okCat = cat==='all' || it.category===cat;
-    const okQ = !q || (it.name||'').toLowerCase().includes(q) || (it.details||'').toLowerCase().includes(q);
-    return okCat && okQ;
-  });
-}
+/* ===== UI filters ===== */
 els.search.oninput = ()=> renderList(filteredItems());
 els.category.onchange = ()=> renderList(filteredItems());
 els.clear.onclick = ()=>{ state.cart={}; renderCart(); };
+
+els.chips.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.filter-btn');
+  if(!btn) return;
+  els.chips.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  state.activeFilter = btn.dataset.filter || 'all';
+  renderList(filteredItems());
+});
 
 /* ===== WhatsApp ===== */
 els.copyBtn.onclick = ()=>{
@@ -503,7 +544,7 @@ async function loadData(){
     } else {
       els.error.style.display='none';
     }
-    renderList(state.items);
+    renderList(filteredItems());
   } catch(e){
     console.error(e);
     els.error.style.display='block';
